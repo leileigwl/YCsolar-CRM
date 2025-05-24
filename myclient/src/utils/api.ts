@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 创建 axios 实例
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: '/api',  // 在Docker中通过Nginx代理到后端服务
   headers: {
     'Content-Type': 'application/json',
   }

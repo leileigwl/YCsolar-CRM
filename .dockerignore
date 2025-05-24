@@ -1,0 +1,37 @@
+# 通用
+.git
+.gitignore
+.vscode
+.github
+*.md
+!README.md
+.env
+
+# 前端
+myclient/node_modules
+myclient/.pnp
+myclient/.pnp.js
+myclient/coverage
+myclient/build
+myclient/.DS_Store
+myclient/.env.local
+myclient/.env.development.local
+myclient/.env.test.local
+myclient/.env.production.local
+myclient/npm-debug.log*
+myclient/yarn-debug.log*
+myclient/yarn-error.log*
+
+# 后端
+server/node_modules
+server/.env
+server/npm-debug.log*
+server/yarn-debug.log*
+server/yarn-error.log*
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore 

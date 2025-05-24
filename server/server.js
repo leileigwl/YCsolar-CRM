@@ -33,7 +33,7 @@ app.use((err, req, res, next) => {
 
 // 启动服务器
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`服务器运行在端口 ${PORT}`);
 });
 
 module.exports = app; 

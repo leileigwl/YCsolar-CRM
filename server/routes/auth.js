@@ -18,4 +18,14 @@ router.post('/login', authController.login);
 // @access  Private
 router.get('/me', auth, authController.getMe);
 
+// @route   PUT api/auth/profile
+// @desc    更新用户个人资料
+// @access  Private
+router.put('/profile', auth, authController.updateProfile);
+
+// @route   PUT api/auth/password
+// @desc    修改用户密码
+// @access  Private
+router.put('/password', auth, authController.changePassword);
+
 module.exports = router; 

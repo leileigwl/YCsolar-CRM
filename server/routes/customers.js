@@ -16,6 +16,11 @@ router.get('/', customerController.getAllCustomers);
 // @access  Private
 router.get('/search', customerController.searchCustomers);
 
+// @route   GET api/customers/trash
+// @desc    获取已删除的客户
+// @access  Private
+router.get('/trash', customerController.getDeletedCustomers);
+
 // @route   GET api/customers/:id
 // @desc    获取单个客户
 // @access  Private
@@ -35,6 +40,11 @@ router.put('/:id', customerController.updateCustomer);
 // @desc    删除客户
 // @access  Private
 router.delete('/:id', customerController.deleteCustomer);
+
+// @route   PUT api/customers/:id/restore
+// @desc    恢复已删除的客户
+// @access  Private
+router.put('/:id/restore', customerController.restoreCustomer);
 
 // @route   PUT api/customers/:id/contact
 // @desc    更新客户最后联系时间

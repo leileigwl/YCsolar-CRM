@@ -3,8 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@craco/craco": "^7.1.0",
     "@headlessui/react": "^2.2.4",
-    "@heroicons/react": "^2.2.0",
+    "@heroicons/react": "^1.0.6",
+    "@tailwindcss/line-clamp": "^0.4.4",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
@@ -14,7 +16,10 @@
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
     "axios": "^1.9.0",
+    "axios-cache-adapter": "^2.7.3",
     "date-fns": "^4.1.0",
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-preset-env": "^10.1.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.0",
@@ -46,5 +51,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.23",
+    "tailwindcss": "^3.3.0"
   }
 }

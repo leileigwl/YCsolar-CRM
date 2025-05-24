@@ -102,16 +102,27 @@ exports.createCommunication = async (req, res) => {
       return res.status(404).json({ message: '未找到客户' });
     }
     
+    // 处理日期时间，确保格式正确
+    let formattedTime = communication_time;
+    if (!formattedTime) {
+      // 如果没有提供时间，使用当前时间并格式化为MySQL格式
+      const now = new Date();
+      formattedTime = now.toISOString().slice(0, 19).replace('T', ' ');
+    }
+    
     // 创建沟通记录
     const [result] = await db.query(
       `INSERT INTO communications (customer_id, user_id, content, communication_time)
        VALUES (?, ?, ?, ?)`,
-      [customer_id, req.user.id, content, communication_time || new Date()]
+      [customer_id, req.user.id, content, formattedTime]
     );
     
     // 如果有上传的文件，处理附件
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
+        // 获取相对于/uploads的路径
+        const relativePath = '/uploads/' + path.basename(file.path);
+        
         await db.query(
           `INSERT INTO attachments 
            (communication_id, file_name, file_type, file_path, file_size)
@@ -120,7 +131,7 @@ exports.createCommunication = async (req, res) => {
             result.insertId,
             file.originalname,
             file.mimetype,
-            file.path,
+            relativePath,
             file.size
           ]
         );
@@ -130,7 +141,7 @@ exports.createCommunication = async (req, res) => {
     // 更新客户的最后联系时间
     await db.query(
       'UPDATE customers SET last_contact_time = ? WHERE id = ?',
-      [communication_time || new Date(), customer_id]
+      [formattedTime, customer_id]
     );
     
     // 获取创建的沟通记录
@@ -152,7 +163,7 @@ exports.createCommunication = async (req, res) => {
     
     res.status(201).json(newCommunication[0]);
   } catch (err) {
-    console.error(err.message);
+    console.error('沟通记录创建错误:', err.message);
     res.status(500).send('服务器错误');
   }
 };
@@ -184,12 +195,22 @@ exports.updateCommunication = async (req, res) => {
       return res.status(403).json({ message: '无权修改此沟通记录' });
     }
     
+    // 处理日期时间，确保格式正确
+    let formattedTime = communication_time;
+    if (!formattedTime) {
+      // 如果没有提供时间，使用之前的时间
+      formattedTime = communication.communication_time;
+    } else if (typeof formattedTime === 'string' && formattedTime.includes('T')) {
+      // 如果是ISO格式，转换为MySQL格式
+      formattedTime = formattedTime.slice(0, 19).replace('T', ' ');
+    }
+    
     // 更新沟通记录
     await db.query(
       `UPDATE communications 
        SET content = ?, communication_time = ?
        WHERE id = ?`,
-      [content, communication_time, req.params.id]
+      [content, formattedTime, req.params.id]
     );
     
     // 获取更新后的沟通记录
@@ -211,7 +232,7 @@ exports.updateCommunication = async (req, res) => {
     
     res.json(updatedCommunication[0]);
   } catch (err) {
-    console.error(err.message);
+    console.error('更新沟通记录错误:', err.message);
     res.status(500).send('服务器错误');
   }
 };
@@ -249,7 +270,15 @@ exports.deleteCommunication = async (req, res) => {
     
     for (const attachment of attachments) {
       try {
-        fs.unlinkSync(attachment.file_path);
+        // 构建正确的文件路径
+        const filePath = path.resolve(__dirname, '..', attachment.file_path.replace(/^\/uploads\//, 'uploads/'));
+        
+        // 检查文件是否存在再删除
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        } else {
+          console.warn(`文件不存在: ${filePath}`);
+        }
       } catch (err) {
         console.error(`删除文件失败: ${attachment.file_path}`, err);
       }
@@ -310,7 +339,7 @@ exports.searchCommunications = async (req, res) => {
 exports.addAttachment = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: '没有上传文件' });
+      return res.status(400).json({ message: '未上传文件' });
     }
     
     // 获取沟通记录
@@ -335,7 +364,10 @@ exports.addAttachment = async (req, res) => {
       return res.status(403).json({ message: '无权修改此沟通记录' });
     }
     
-    // 添加附件
+    // 获取相对于/uploads的路径
+    const relativePath = '/uploads/' + path.basename(req.file.path);
+    
+    // 保存附件信息
     const [result] = await db.query(
       `INSERT INTO attachments 
        (communication_id, file_name, file_type, file_path, file_size)
@@ -344,12 +376,12 @@ exports.addAttachment = async (req, res) => {
         req.params.id,
         req.file.originalname,
         req.file.mimetype,
-        req.file.path,
+        relativePath,
         req.file.size
       ]
     );
     
-    // 获取附件信息
+    // 获取创建的附件
     const [attachment] = await db.query(
       'SELECT * FROM attachments WHERE id = ?',
       [result.insertId]
@@ -389,7 +421,15 @@ exports.deleteAttachment = async (req, res) => {
     
     // 删除文件
     try {
-      fs.unlinkSync(attachment.file_path);
+      // 构建正确的文件路径
+      const filePath = path.resolve(__dirname, '..', attachment.file_path.replace(/^\/uploads\//, 'uploads/'));
+      
+      // 检查文件是否存在再删除
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      } else {
+        console.warn(`文件不存在: ${filePath}`);
+      }
     } catch (err) {
       console.error(`删除文件失败: ${attachment.file_path}`, err);
     }

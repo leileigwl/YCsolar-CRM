@@ -1,12 +1,12 @@
 import React, { Fragment, useState } from 'react';
 import { Disclosure, Menu, Transition } from '@headlessui/react';
-import { BellIcon, MenuIcon, XIcon, SearchIcon } from '@heroicons/react/outline';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { BellIcon, MenuIcon, XIcon, SearchIcon, } from '@heroicons/react/outline';
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const navigation = [
-  { name: '客户管理', href: '/customers', current: true },
-  { name: '搜索', href: '/search', current: false },
+  { name: '主页', href: '/', current: false },
+  { name: '回收站', href: '/trash', current: false },
 ];
 
 function classNames(...classes: string[]) {
@@ -16,12 +16,26 @@ function classNames(...classes: string[]) {
 const Layout: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, content: '您有一个新客户待处理', time: '5分钟前', read: true },
+    { id: 2, content: '系统更新通知：文件上传功能已优化', time: '1小时前', read: true },
+    { id: 3, content: '欢迎使用客户管理系统！', time: '1天前', read: true }
+  ]);
+  
+  // 设置当前活动导航项
+  const currentNav = navigation.map(item => ({
+    ...item,
+    current: location.pathname === item.href
+  }));
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      // 将搜索参数添加到当前URL
+      navigate(`/?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
   
@@ -29,6 +43,12 @@ const Layout: React.FC = () => {
     logout();
     navigate('/login');
   };
+  
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
+  
+  const unreadCount = notifications.filter(n => !n.read).length;
   
   return (
     <div className="min-h-screen bg-gray-100">
@@ -54,7 +74,7 @@ const Layout: React.FC = () => {
                   </div>
                   <div className="hidden sm:block sm:ml-6">
                     <div className="flex space-x-4">
-                      {navigation.map((item) => (
+                      {currentNav.map((item) => (
                         <Link
                           key={item.name}
                           to={item.href}
@@ -83,7 +103,7 @@ const Layout: React.FC = () => {
                       <input
                         type="text"
                         className="block w-full pl-10 pr-3 py-1.5 border border-transparent rounded-md leading-5 bg-indigo-500 text-indigo-100 placeholder-indigo-300 focus:outline-none focus:bg-white focus:border-white focus:ring-white focus:text-gray-900 sm:text-sm"
-                        placeholder="搜索..."
+                        placeholder="搜索客户、沟通记录..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -91,20 +111,73 @@ const Layout: React.FC = () => {
                   </form>
                   
                   {/* Notifications */}
-                  <button
-                    type="button"
-                    className="p-1 rounded-full text-indigo-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-600 focus:ring-white"
-                  >
-                    <span className="sr-only">查看通知</span>
-                    <BellIcon className="h-6 w-6" aria-hidden="true" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowNotifications(!showNotifications)}
+                      className="p-1 rounded-full text-indigo-200 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-600 focus:ring-white"
+                    >
+                      <span className="sr-only">查看通知</span>
+                      <BellIcon className="h-6 w-6" aria-hidden="true" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </button>
+                    
+                    {showNotifications && (
+                      <div className="origin-top-right absolute right-0 mt-2 w-80 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                        <div className="py-1">
+                          <div className="flex justify-between items-center px-4 py-2 border-b border-gray-200">
+                            <h3 className="text-sm font-medium text-gray-700">通知</h3>
+                            {unreadCount > 0 && (
+                              <button 
+                                onClick={markAllAsRead}
+                                className="text-xs text-indigo-600 hover:text-indigo-800"
+                              >
+                                标记所有为已读
+                              </button>
+                            )}
+                          </div>
+                          <div className="max-h-60 overflow-y-auto">
+                            {notifications.length === 0 ? (
+                              <div className="px-4 py-3 text-sm text-gray-500">
+                                暂无通知
+                              </div>
+                            ) : (
+                              notifications.map(notification => (
+                                <div 
+                                  key={notification.id} 
+                                  className={`px-4 py-3 hover:bg-gray-50 ${
+                                    !notification.read ? 'bg-indigo-50' : ''
+                                  }`}
+                                >
+                                  <p className="text-sm text-gray-800">{notification.content}</p>
+                                  <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                          <div className="border-t border-gray-200 px-4 py-2">
+                            <button 
+                              onClick={() => navigate('/notifications')}
+                              className="text-xs text-indigo-600 hover:text-indigo-800 w-full text-center"
+                            >
+                              查看所有通知
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Profile dropdown */}
                   <Menu as="div" className="ml-3 relative">
                     <div>
-                      <Menu.Button className="bg-indigo-600 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-600 focus:ring-white">
+                      <Menu.Button className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-indigo-600 focus:ring-white">
                         <span className="sr-only">Open user menu</span>
-                        <div className="h-8 w-8 rounded-full bg-indigo-700 flex items-center justify-center text-white font-bold">
+                        <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">
                           {user?.username.charAt(0).toUpperCase() || 'U'}
                         </div>
                       </Menu.Button>
@@ -134,19 +207,6 @@ const Layout: React.FC = () => {
                         </Menu.Item>
                         <Menu.Item>
                           {({ active }) => (
-                            <Link
-                              to="/settings"
-                              className={classNames(
-                                active ? 'bg-gray-100' : '',
-                                'block px-4 py-2 text-sm text-gray-700'
-                              )}
-                            >
-                              设置
-                            </Link>
-                          )}
-                        </Menu.Item>
-                        <Menu.Item>
-                          {({ active }) => (
                             <button
                               onClick={handleLogout}
                               className={classNames(
@@ -167,7 +227,7 @@ const Layout: React.FC = () => {
 
             <Disclosure.Panel className="sm:hidden">
               <div className="px-2 pt-2 pb-3 space-y-1">
-                {navigation.map((item) => (
+                {currentNav.map((item) => (
                   <Disclosure.Button
                     key={item.name}
                     as={Link}
@@ -193,7 +253,7 @@ const Layout: React.FC = () => {
                     <input
                       type="text"
                       className="block w-full pl-10 pr-3 py-1.5 border border-transparent rounded-md leading-5 bg-indigo-500 text-indigo-100 placeholder-indigo-300 focus:outline-none focus:bg-white focus:border-white focus:ring-white focus:text-gray-900 sm:text-sm"
-                      placeholder="搜索..."
+                      placeholder="搜索客户、沟通记录..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />

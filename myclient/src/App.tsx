@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import './App.css';
 
 // 组件
 import PrivateRoute from './components/PrivateRoute';
@@ -9,16 +10,21 @@ import Layout from './components/Layout';
 // 页面
 import Login from './pages/Login';
 import Register from './pages/Register';
-import CustomerList from './pages/CustomerList';
 import Dashboard from './pages/Dashboard';
+import CustomerForm from './pages/CustomerForm';
+import CustomerDetail from './pages/CustomerDetail';
+import CommunicationForm from './pages/CommunicationForm';
+import CommunicationEdit from './pages/CommunicationEdit';
+import Profile from './pages/Profile';
+import Trash from './pages/Trash';
 
 // 待开发的页面占位符
-const CustomerForm = () => <div className="p-4">客户表单（待开发）</div>;
-const CustomerDetail = () => <div className="p-4">客户详情（待开发）</div>;
-const CommunicationForm = () => <div className="p-4">沟通记录表单（待开发）</div>;
-const SearchPage = () => <div className="p-4">搜索页面（待开发）</div>;
-const ProfilePage = () => <div className="p-4">个人资料页（待开发）</div>;
-const SettingsPage = () => <div className="p-4">设置页面（待开发）</div>;
+const NotificationsPage = () => (
+  <div className="p-4 bg-white shadow overflow-hidden sm:rounded-lg">
+    <h1 className="text-xl font-semibold mb-4">通知中心</h1>
+    <p className="text-gray-500">暂无更多通知</p>
+  </div>
+);
 
 function App() {
   return (
@@ -33,14 +39,14 @@ function App() {
           <Route element={<PrivateRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/customers" element={<CustomerList />} />
               <Route path="/customers/new" element={<CustomerForm />} />
               <Route path="/customers/:id" element={<CustomerDetail />} />
               <Route path="/customers/:id/edit" element={<CustomerForm />} />
               <Route path="/customers/:id/communications/new" element={<CommunicationForm />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/customers/:id/communications/:communicationId/edit" element={<CommunicationEdit />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/trash" element={<Trash />} />
             </Route>
           </Route>
           

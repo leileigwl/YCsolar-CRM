@@ -1,0 +1,15 @@
+/* 移除蓝色背景的按钮 */
+.removeBlueButtons button {
+  background-color: white !important;
+  color: #6b7280 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.removeBlueButtons button:hover {
+  background-color: #f9fafb !important;
+}
+
+/* 移除蓝色文本 */
+.removeBlueText {
+  color: #6b7280 !important;
+} 

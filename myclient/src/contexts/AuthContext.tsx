@@ -36,63 +36,71 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [, setError] = useState('');
 
   // 加载用户
   useEffect(() => {
-    const loadUser = async () => {
+    const checkAuth = async () => {
       const token = localStorage.getItem('token');
       
       if (!token) {
         setLoading(false);
         return;
       }
+      
+      setLoading(true);
 
       try {
-        const response = await authAPI.getMe();
+        const response = await authAPI.me();
         setUser(response.data);
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Error loading user:', error);
         localStorage.removeItem('token');
       } finally {
         setLoading(false);
       }
     };
-
-    loadUser();
+    
+    checkAuth();
   }, []);
 
   // 登录
   const login = async (email: string, password: string) => {
+    setError('');
     try {
       const response = await authAPI.login({ email, password });
       
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        const userResponse = await authAPI.getMe();
+        const userResponse = await authAPI.me();
         setUser(userResponse.data);
         setIsAuthenticated(true);
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+      
+      return response.data;
+    } catch (err: any) {
+      setError(err.response?.data?.message || '登录失败');
+      throw err;
     }
   };
 
   // 注册
   const register = async (username: string, email: string, password: string) => {
+    setError('');
     try {
       const response = await authAPI.register({ username, email, password });
       
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        const userResponse = await authAPI.getMe();
+        const userResponse = await authAPI.me();
         setUser(userResponse.data);
         setIsAuthenticated(true);
       }
-    } catch (error) {
-      console.error('Register error:', error);
-      throw error;
+      
+      return response.data;
+    } catch (err: any) {
+      setError(err.response?.data?.message || '注册失败');
+      throw err;
     }
   };
 

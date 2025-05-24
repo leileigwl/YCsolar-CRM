@@ -1,59 +1,70 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
-
-// 创建axios实例
+// 创建 axios 实例
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
-  },
+  }
 });
 
-// 请求拦截器，添加token
+// 请求拦截器，添加 token
 api.interceptors.request.use(
-  (config) => {
+  config => {
     const token = localStorage.getItem('token');
     if (token) {
       config.headers['x-auth-token'] = token;
     }
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
 
-// 响应拦截器，处理401错误
+// 为测试和开发添加通用错误处理
 api.interceptors.response.use(
-  (response) => {
+  response => {
     return response;
   },
-  (error) => {
+  error => {
+    // 身份验证错误
     if (error.response && error.response.status === 401) {
-      // 清除本地存储的token
       localStorage.removeItem('token');
-      // 重定向到登录页
-      window.location.href = '/login';
+      localStorage.removeItem('user');
+      // 如果不在登录页，则重定向到登录页
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
+    
     return Promise.reject(error);
   }
 );
 
-// Auth API
+// 导出
+export { api };
+
+// 身份验证API
 export const authAPI = {
-  register: (userData: { username: string; email: string; password: string }) => {
-    return api.post('/auth/register', userData);
+  register: (data: { username: string; email: string; password: string }) => {
+    return api.post('/auth/register', data);
   },
-  login: (credentials: { email: string; password: string }) => {
-    return api.post('/auth/login', credentials);
+  login: (data: { email: string; password: string }) => {
+    return api.post('/auth/login', data);
   },
-  getMe: () => {
+  me: () => {
     return api.get('/auth/me');
+  },
+  updateProfile: (data: { username: string }) => {
+    return api.put('/auth/profile', data);
+  },
+  changePassword: (data: { currentPassword: string; newPassword: string }) => {
+    return api.put('/auth/password', data);
   },
 };
 
-// Customer API
+// 客户API
 export const customerAPI = {
   getAllCustomers: () => {
     return api.get('/customers');
@@ -61,21 +72,41 @@ export const customerAPI = {
   getCustomer: (id: string) => {
     return api.get(`/customers/${id}`);
   },
-  createCustomer: (customerData: any) => {
-    return api.post('/customers', customerData);
+  createCustomer: (data: {
+    name: string;
+    contact_type: string;
+    contact_info: string;
+    country: string;
+    importance: string;
+    notes: string;
+  }) => {
+    return api.post('/customers', data);
   },
-  updateCustomer: (id: string, customerData: any) => {
-    return api.put(`/customers/${id}`, customerData);
+  updateCustomer: (id: string, data: {
+    name: string;
+    contact_type: string;
+    contact_info: string;
+    country: string;
+    importance: string;
+    notes: string;
+  }) => {
+    return api.put(`/customers/${id}`, data);
   },
   deleteCustomer: (id: string) => {
     return api.delete(`/customers/${id}`);
   },
-  searchCustomers: (query: string) => {
-    return api.get(`/customers/search?query=${query}`);
-  },
   updateLastContactTime: (id: string) => {
     return api.put(`/customers/${id}/contact`);
   },
+  getDeletedCustomers: () => {
+    return api.get('/customers/trash');
+  },
+  restoreCustomer: (id: string) => {
+    return api.put(`/customers/${id}/restore`);
+  },
+  searchCustomers: (query: string) => {
+    return api.get(`/customers/search?q=${encodeURIComponent(query)}`);
+  }
 };
 
 // Communication API
@@ -93,7 +124,10 @@ export const communicationAPI = {
       },
     });
   },
-  updateCommunication: (id: string, data: any) => {
+  updateCommunication: (id: string, data: {
+    content: string;
+    communication_time?: string;
+  }) => {
     return api.put(`/communications/${id}`, data);
   },
   deleteCommunication: (id: string) => {
@@ -112,6 +146,4 @@ export const communicationAPI = {
   deleteAttachment: (communicationId: string, attachmentId: string) => {
     return api.delete(`/communications/${communicationId}/attachments/${attachmentId}`);
   },
-};
-
-export default api; 
+}; 

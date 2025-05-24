@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS customers (
   contact_type ENUM('WeChat', 'WhatsApp') NOT NULL,
   contact_info VARCHAR(255) NOT NULL,
   country VARCHAR(100) NOT NULL,
+  importance ENUM('Normal', 'Important', 'VeryImportant') NOT NULL DEFAULT 'Normal',
   notes TEXT,
   last_contact_time TIMESTAMP NULL,
   created_by INT NOT NULL,

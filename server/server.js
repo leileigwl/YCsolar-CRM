@@ -20,6 +20,11 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/communications', require('./routes/communications'));
 
+// 健康检查端点，用于Docker健康检查
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // 简单的健康检查路由
 app.get('/', (req, res) => {
   res.send('CRM API is running');

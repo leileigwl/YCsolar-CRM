@@ -1,14 +1,16 @@
-FROM node:18-alpine as build
+FROM node:20-alpine as build
 
 WORKDIR /app
 
 COPY myclient/package*.json ./
 
-RUN npm install --legacy-peer-deps
+# 先安装兼容的axios版本，然后强制安装所有依赖
+RUN npm install axios@0.21.4 --no-save && \
+    npm install --force
 
 COPY myclient/ ./
 
-RUN npm run build --legacy-peer-deps
+RUN npm run build
 
 # 生产环境
 FROM nginx:alpine

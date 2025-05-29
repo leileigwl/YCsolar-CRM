@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { customerAPI, communicationAPI } from '../utils/api';
-import { useAuth } from '../contexts/AuthContext';
 import { 
   PlusIcon, 
-  ExclamationCircleIcon,
   SortAscendingIcon,
   SortDescendingIcon,
-  FilterIcon,
-  SearchIcon
+  SearchIcon,
+  DocumentReportIcon,
+  ClockIcon
 } from '@heroicons/react/outline';
 import CustomerCard from '../components/CustomerCard';
 
@@ -37,16 +36,17 @@ interface Communication {
 
 interface CustomerWithCommunications extends Customer {
   communications?: Communication[];
+  communication_count: number;
 }
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
   const location = useLocation();
   const [customers, setCustomers] = useState<CustomerWithCommunications[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<CustomerWithCommunications[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortField, setSortField] = useState<'last_contact_time' | 'communication_count'>('last_contact_time');
   const [countries, setCountries] = useState<string[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -76,15 +76,18 @@ const Dashboard: React.FC = () => {
           customerData.map(async (customer: Customer) => {
             try {
               const commResponse = await communicationAPI.getCustomerCommunications(customer.id.toString());
+              const communications = commResponse.data;
               return {
                 ...customer,
-                communications: commResponse.data
+                communications: communications,
+                communication_count: communications.length
               };
             } catch (err) {
               console.error(`获取客户 ${customer.id} 的沟通记录失败:`, err);
               return {
                 ...customer,
-                communications: []
+                communications: [],
+                communication_count: 0
               };
             }
           })
@@ -100,7 +103,8 @@ const Dashboard: React.FC = () => {
         console.log('获取到的所有客户:', customersWithCommunications.map(c => ({
           id: c.id,
           name: c.name,
-          importance: c.importance
+          importance: c.importance,
+          communication_count: c.communication_count
         })));
       } catch (err: any) {
         setError(err.response?.data?.message || '加载客户数据失败');
@@ -164,17 +168,25 @@ const Dashboard: React.FC = () => {
     
     // 排序
     result = [...result].sort((a, b) => {
-      if (!a.last_contact_time && !b.last_contact_time) return 0;
-      if (!a.last_contact_time) return 1;
-      if (!b.last_contact_time) return -1;
-      const timeA = new Date(a.last_contact_time).getTime();
-      const timeB = new Date(b.last_contact_time).getTime();
-      return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+      if (sortField === 'communication_count') {
+        // 按沟通次数排序
+        const countA = a.communication_count || 0;
+        const countB = b.communication_count || 0;
+        return sortOrder === 'desc' ? countB - countA : countA - countB;
+      } else {
+        // 按最后联系时间排序
+        if (!a.last_contact_time && !b.last_contact_time) return 0;
+        if (!a.last_contact_time) return 1;
+        if (!b.last_contact_time) return -1;
+        const timeA = new Date(a.last_contact_time).getTime();
+        const timeB = new Date(b.last_contact_time).getTime();
+        return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+      }
     });
     
     console.log('最终结果客户数量:', result.length);
     setFilteredCustomers(result);
-  }, [customers, selectedImportance, selectedCountry, searchTerm, sortOrder]);
+  }, [customers, selectedImportance, selectedCountry, searchTerm, sortOrder, sortField]);
 
   // 修复后的重要程度匹配函数
   const matchImportance = (customerImportance: string, selectedValue: string): boolean => {
@@ -211,7 +223,11 @@ const Dashboard: React.FC = () => {
 
   // 切换排序顺序
   const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  };
+
+  const toggleSortField = () => {
+    setSortField(sortField === 'last_contact_time' ? 'communication_count' : 'last_contact_time');
   };
 
   // 删除客户 - 简化为直接处理删除逻辑
@@ -238,11 +254,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-
-
-
-
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -252,105 +263,65 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div>
-      {/* 欢迎消息 */}
-      {user && (
-        <div className="bg-indigo-50 rounded-md p-4 mb-6 border border-indigo-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">
-                  {user.username.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-medium text-indigo-800">
-                  欢迎回来，{user.username}
-                </h3>
-                <p className="text-sm text-indigo-600">
-                  {new Date().toLocaleDateString('zh-CN', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </p>
-              </div>
-            </div>
-            
-            <Link
-              to="/customers/new"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-              快速添加
-            </Link>
-          </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">客户列表</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            {!isSearching
+              ? `共 ${filteredCustomers.length} 位客户`
+              : `找到 ${filteredCustomers.length} 条搜索结果`}
+          </p>
         </div>
-      )}
-      
-      {!user && (
-        <div className="flex justify-end mb-6">
+        <div className="mt-4 md:mt-0">
           <Link
             to="/customers/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-            快速添加
+            添加客户
           </Link>
         </div>
-      )}
-      
-      <div className="flex justify-between items-center mb-6">
-        {isSearching && (
-          <h1 className="text-2xl font-bold text-gray-900">
-            搜索结果: "{searchTerm}"
-          </h1>
-        )}
       </div>
 
-      {/* 移动端搜索框 */}
-      <div className="sm:hidden mb-4">
-        <form action="/" className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-            <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-          </div>
-          <input
-            type="search"
-            name="q"
-            defaultValue={searchTerm}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            placeholder="搜索客户、联系方式、沟通记录..."
-          />
-        </form>
-      </div>
-
-      {/* 筛选和排序工具栏 */}
-      <div className="bg-white shadow rounded-md p-4 mb-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center">
-              <FilterIcon className="h-5 w-5 text-gray-400 mr-2" />
+      {/* 筛选栏 */}
+      <div className="mb-6 bg-white shadow rounded-lg p-4">
+        <div className="flex flex-col lg:flex-row justify-between space-y-4 lg:space-y-0">
+          {/* 国家筛选 */}
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <label htmlFor="country-filter" className="block text-sm font-medium text-gray-700">
+              国家:
+            </label>
+            <div className="relative">
               <select
+                id="country-filter"
                 value={selectedCountry}
                 onChange={(e) => setSelectedCountry(e.target.value)}
-                className="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md appearance-none"
+                style={{ backgroundImage: "url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20fill%3D%22%235a67d8%22%20d%3D%22M9.293%2012.95l.707.707L15.657%208l-1.414-1.414L10%2010.828%205.757%206.586%204.343%208z%22%2F%3E%3C%2Fsvg%3E')", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.5rem center", paddingRight: "2.5rem" }}
               >
-                <option value="">所有地区</option>
-                {countries.map(country => (
-                  <option key={country} value={country}>{country}</option>
+                <option value="">所有国家</option>
+                {countries.map((country) => (
+                  <option key={country} value={country}>
+                    {country}
+                  </option>
                 ))}
               </select>
             </div>
-            
-            <div className="flex items-center">
-              <ExclamationCircleIcon className="h-5 w-5 text-gray-400 mr-2" />
+          
+            {/* 重要程度筛选 */}
+            <label htmlFor="importance-filter" className="block text-sm font-medium text-gray-700 mt-4 sm:mt-0  border-gray-300 rounded-md">
+              重要程度:
+            </label>
+            <div className="relative">
               <select
+                id="importance-filter"
                 value={selectedImportance}
                 onChange={(e) => setSelectedImportance(e.target.value)}
-                className="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md appearance-none"
+                style={{ backgroundImage: "url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20fill%3D%22%235a67d8%22%20d%3D%22M9.293%2012.95l.707.707L15.657%208l-1.414-1.414L10%2010.828%205.757%206.586%204.343%208z%22%2F%3E%3C%2Fsvg%3E')", backgroundRepeat: "no-repeat", backgroundPosition: "right 0.5rem center", paddingRight: "2.5rem" }}
               >
-                <option value="">所有客户</option>
+                <option value="">所有重要程度</option>
                 <option value="普通">普通客户</option>
                 <option value="重要">重要客户</option>
                 <option value="特别重要">特别重要客户</option>
@@ -358,22 +329,67 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <button
-            onClick={toggleSortOrder}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            {sortOrder === 'desc' ? (
-              <>
-                <SortDescendingIcon className="h-5 w-5 mr-1" />
-                最近联系优先
-              </>
-            ) : (
-              <>
-                <SortAscendingIcon className="h-5 w-5 mr-1" />
-                最早联系优先
-              </>
-            )}
-          </button>
+          {/* 排序和搜索 */}
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <button
+                onClick={toggleSortField}
+                className="px-3 py-2 flex items-center text-sm font-medium rounded-md text-gray-600 hover:text-gray-900"
+                title={sortField === 'last_contact_time' ? "按最后联系时间排序" : "按沟通次数排序"}
+              >
+                {sortField === 'last_contact_time' ? (
+                  <>
+                    <ClockIcon className="h-4 w-4 mr-1" />
+                    联系时间
+                  </>
+                ) : (
+                  <>
+                    <DocumentReportIcon className="h-4 w-4 mr-1" />
+                    沟通次数
+                  </>
+                )}
+              </button>
+              <button
+                onClick={toggleSortOrder}
+                className="ml-2 p-1.5 rounded-md text-gray-500 hover:text-gray-700"
+                title={sortOrder === 'desc' ? "降序排列" : "升序排列"}
+              >
+                {sortOrder === 'desc' ? (
+                  <SortDescendingIcon className="h-5 w-5" />
+                ) : (
+                  <SortAscendingIcon className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+            
+            <form
+              className="w-full sm:w-auto"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const searchParams = new URLSearchParams(location.search);
+                if (searchTerm) {
+                  searchParams.set('q', searchTerm);
+                } else {
+                  searchParams.delete('q');
+                }
+                window.history.pushState({}, '', `?${searchParams.toString()}`);
+                setIsSearching(!!searchTerm);
+              }}
+            >
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  className="block w-full sm:w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="搜索客户..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <SearchIcon className="h-5 w-5 text-gray-400" />
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 

@@ -3,13 +3,16 @@ const db = require('../config/db');
 // 获取所有客户
 exports.getAllCustomers = async (req, res) => {
   try {
-    const userId = req.user.id;
-    
+    // 检索所有属于当前用户的客户
     const [customers] = await db.query(
-      'SELECT * FROM customers WHERE created_by = ? AND (is_deleted = 0 OR is_deleted IS NULL) ORDER BY last_contact_time DESC',
-      [userId]
+      `SELECT c.*,
+        (SELECT COUNT(*) FROM communications WHERE customer_id = c.id) as communication_count
+       FROM customers c 
+       WHERE c.created_by = ? AND (c.is_deleted = 0 OR c.is_deleted IS NULL) 
+       ORDER BY c.created_at DESC`,
+      [req.user.id]
     );
-    
+
     res.json(customers);
   } catch (err) {
     console.error(err.message);

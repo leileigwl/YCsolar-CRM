@@ -56,6 +56,84 @@ const CommunicationCard: React.FC<CommunicationCardProps> = ({
     return 0;
   };
 
+  // 获取文件URL（所有环境都使用相对路径）
+  const getFileUrl = (path: string): string => {
+    if (!path) return '';
+    
+    // 确保路径是相对路径（移除任何协议和域名）
+    let normalizedPath = path;
+    if (path.includes('://')) {
+      // 如果包含协议，提取路径部分
+      try {
+        const url = new URL(path);
+        normalizedPath = url.pathname;
+      } catch (e) {
+        // 如果解析URL失败，尝试截取路径
+        const pathParts = path.split('/');
+        // 尝试找到uploads部分并从那里开始
+        const uploadsIndex = pathParts.findIndex(part => part === 'uploads');
+        if (uploadsIndex >= 0) {
+          normalizedPath = '/' + pathParts.slice(uploadsIndex).join('/');
+        }
+      }
+    }
+    
+    // 确保路径以/开头
+    if (!normalizedPath.startsWith('/')) {
+      normalizedPath = '/' + normalizedPath;
+    }
+
+    // 在所有环境中都使用相对路径
+    // 这确保了在本地开发和生产部署中都能正确访问文件
+    return normalizedPath;
+  };
+
+  // 检查文件是否可以在浏览器中查看
+  const isViewableInBrowser = (fileType: string, fileName: string): boolean => {
+    // 图片类型总是在浏览器中查看
+    if (fileType.startsWith('image/')) {
+      return true;
+    }
+    
+    // PDF文件可以在浏览器中查看
+    if (fileType === 'application/pdf') {
+      return true;
+    }
+    
+    // 文本文件可以在浏览器中查看
+    if (fileType === 'text/plain' || 
+        fileType === 'text/html' || 
+        fileType === 'text/css' ||
+        fileType === 'text/javascript') {
+      return true;
+    }
+    
+    // Office文档总是下载(不在浏览器中查看)
+    if (fileType.includes('word') || 
+        fileType.includes('excel') || 
+        fileType.includes('spreadsheet') ||
+        fileType.includes('presentation') ||
+        fileType.includes('powerpoint')) {
+      return false;
+    }
+    
+    // 根据文件扩展名判断
+    const ext = fileName.toLowerCase().split('.').pop();
+    if (ext === 'txt' || ext === 'pdf' || ext === 'html' || ext === 'htm') {
+      return true;
+    }
+    
+    if (ext === 'doc' || ext === 'docx' || 
+        ext === 'xls' || ext === 'xlsx' || 
+        ext === 'ppt' || ext === 'pptx' ||
+        ext === 'csv') {
+      return false;
+    }
+    
+    // 默认情况下不在浏览器中查看
+    return false;
+  };
+
   const getAttachmentIcon = (fileType: string) => {
     if (fileType.startsWith('image/')) {
       return <DocumentTextIcon className="h-5 w-5 text-gray-500" />;
@@ -123,20 +201,21 @@ const CommunicationCard: React.FC<CommunicationCardProps> = ({
               <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">附件</h4>
               <div className="space-y-2">
                 {communication.attachments.map((attachment, index) => {
-                  // 构建完整URL，确保图片类型也能正确下载
-                  const isImage = attachment.file_type?.startsWith('image/');
-                  const fileUrl = `http://localhost:5000${attachment.file_path}`;
+                  const viewable = isViewableInBrowser(attachment.file_type, attachment.file_name);
+                  
+                  // 获取文件URL（相对路径）
+                  const fileUrl = getFileUrl(attachment.file_path);
                   
                   return (
                     <a
                       key={attachment.id || index}
                       href={fileUrl}
-                      download={isImage ? undefined : attachment.file_name}
-                      target={isImage ? "_blank" : undefined}
+                      download={viewable ? undefined : attachment.file_name}
+                      target={viewable ? "_blank" : undefined}
                       className="flex items-center p-3 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors border border-gray-200 group"
                       onClick={(e) => {
-                        // 图片类型使用新窗口打开
-                        if (isImage) {
+                        // 可查看的文件类型使用新窗口打开
+                        if (viewable) {
                           e.preventDefault();
                           window.open(fileUrl, '_blank');
                         }

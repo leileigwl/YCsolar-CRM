@@ -47,16 +47,16 @@ h1, h2, h3 {
 }
 
 button {
-  background-color: #3b82f6;
-  color: white;
+  background-color: transparent;
+  color: #4b5563;
   padding: 8px 16px;
   border-radius: 4px;
-  border: none;
+  border: 1px solid #e5e7eb;
   cursor: pointer;
 }
 
 button:hover {
-  background-color: #2563eb;
+  background-color: #f9fafb;
 }
 
 a {

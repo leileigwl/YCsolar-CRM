@@ -8,7 +8,8 @@ const pool = mysql.createPool({
   database: process.env.DB_NAME || 'ycsolar',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  charset: 'utf8mb4' // 明确指定UTF-8字符集
 });
 
 // 测试数据库连接

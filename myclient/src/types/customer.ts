@@ -11,6 +11,7 @@ export interface Customer {
   updated_at?: string;
   last_contact_time: string | null;
   deleted_at?: string | null;
+  communication_count?: number;
 }
 
 export interface Communication {

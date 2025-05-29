@@ -10,6 +10,7 @@ import {
   GlobeAltIcon,
   ClockIcon,
   ChatIcon,
+  DocumentReportIcon,
 } from '@heroicons/react/outline';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -22,6 +23,7 @@ interface Customer {
   country: string;
   notes: string;
   last_contact_time: string | null;
+  communication_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -125,6 +127,14 @@ const CustomerCard: React.FC<CustomerCardProps> = ({
                 {importanceDetails.icon}
                 <span className="truncate">{importanceDetails.label}</span>
               </div>
+              
+              {/* 添加沟通次数标签 */}
+              {(customer.communication_count !== undefined && customer.communication_count > 0) && (
+                <div className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-indigo-600 bg-indigo-50">
+                  <DocumentReportIcon className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                  <span>沟通 {customer.communication_count} 次</span>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center text-xs text-gray-600">

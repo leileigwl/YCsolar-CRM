@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const path = require('path');
 const fs = require('fs');
+const config = require('../config/config');
 
 // 获取客户的所有沟通记录
 exports.getCustomerCommunications = async (req, res) => {
@@ -87,7 +88,7 @@ exports.getCommunicationById = async (req, res) => {
   }
 };
 
-// 创建沟通记录
+// 创建带有附件的沟通记录
 exports.createCommunication = async (req, res) => {
   try {
     const { customer_id, content, communication_time } = req.body;
@@ -105,7 +106,7 @@ exports.createCommunication = async (req, res) => {
     // 处理日期时间，确保格式正确
     let formattedTime = communication_time;
     if (!formattedTime) {
-      // 如果没有提供时间，使用当前时间并格式化为MySQL格式
+      // 如果没有提供时间，使用当前时间
       const now = new Date();
       formattedTime = now.toISOString().slice(0, 19).replace('T', ' ');
     }
@@ -117,24 +118,51 @@ exports.createCommunication = async (req, res) => {
       [customer_id, req.user.id, content, formattedTime]
     );
     
-    // 如果有上传的文件，处理附件
+    const communicationId = result.insertId;
+    
+    // 处理附件
+    const attachments = [];
+    
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        // 获取相对于/uploads的路径
+        // 只保存相对路径
         const relativePath = '/uploads/' + path.basename(file.path);
+        const filename = path.basename(file.path);
         
-        await db.query(
+        // 从请求对象中获取修复后的原始文件名
+        let originalName = file.originalname;
+        
+        if (req.fileData && req.fileData[filename]) {
+          originalName = req.fileData[filename].originalName;
+          console.log(`使用修复后的文件名: "${originalName}"`);
+        }
+        
+        // 保存附件信息到数据库
+        const [attachResult] = await db.query(
           `INSERT INTO attachments 
            (communication_id, file_name, file_type, file_path, file_size)
            VALUES (?, ?, ?, ?, ?)`,
           [
-            result.insertId,
-            file.originalname,
+            communicationId,
+            originalName,
             file.mimetype,
             relativePath,
             file.size
           ]
         );
+        
+        // 获取创建的附件信息
+        const [attachment] = await db.query(
+          'SELECT * FROM attachments WHERE id = ?',
+          [attachResult.insertId]
+        );
+        
+        attachments.push(attachment[0]);
+        
+        console.log('保存附件:', {
+          文件名: originalName, 
+          保存路径: relativePath
+        });
       }
     }
     
@@ -144,24 +172,19 @@ exports.createCommunication = async (req, res) => {
       [formattedTime, customer_id]
     );
     
-    // 获取创建的沟通记录
-    const [newCommunication] = await db.query(
+    // 获取完整的沟通记录信息
+    const [communication] = await db.query(
       `SELECT c.*, u.username as user_name
        FROM communications c
-       JOIN users u ON c.user_id = u.id
+       LEFT JOIN users u ON c.user_id = u.id
        WHERE c.id = ?`,
-      [result.insertId]
+      [communicationId]
     );
     
-    // 获取附件
-    const [attachments] = await db.query(
-      'SELECT * FROM attachments WHERE communication_id = ?',
-      [result.insertId]
-    );
+    // 添加附件到响应
+    communication[0].attachments = attachments;
     
-    newCommunication[0].attachments = attachments;
-    
-    res.status(201).json(newCommunication[0]);
+    res.status(201).json(communication[0]);
   } catch (err) {
     console.error('沟通记录创建错误:', err.message);
     res.status(500).send('服务器错误');
@@ -335,37 +358,49 @@ exports.searchCommunications = async (req, res) => {
   }
 };
 
-// 添加附件到沟通记录
+// 添加附件
 exports.addAttachment = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: '未上传文件' });
-    }
-    
-    // 获取沟通记录
+    // 检查沟通记录是否存在
     const [communications] = await db.query(
-      'SELECT * FROM communications WHERE id = ?',
+      `SELECT c.*, cu.created_by FROM communications c
+       JOIN customers cu ON c.customer_id = cu.id
+       WHERE c.id = ?`,
       [req.params.id]
     );
     
     if (communications.length === 0) {
-      return res.status(404).json({ message: '未找到沟通记录' });
+      return res.status(404).json({ message: '沟通记录不存在' });
     }
     
     const communication = communications[0];
     
     // 检查沟通记录关联的客户是否属于当前用户
-    const [customers] = await db.query(
-      'SELECT * FROM customers WHERE id = ? AND created_by = ?',
-      [communication.customer_id, req.user.id]
-    );
-    
-    if (customers.length === 0) {
-      return res.status(403).json({ message: '无权修改此沟通记录' });
+    if (communication.created_by !== req.user.id) {
+      return res.status(403).json({ message: '无权操作此沟通记录' });
     }
     
-    // 获取相对于/uploads的路径
+    // 上传附件
+    if (!req.file) {
+      return res.status(400).json({ message: '未提供附件' });
+    }
+    
+    // 只保存相对路径，不包含域名
     const relativePath = '/uploads/' + path.basename(req.file.path);
+    const filename = path.basename(req.file.path);
+    
+    // 从请求对象中获取修复后的原始文件名
+    let originalName = req.file.originalname;
+    
+    if (req.fileData && req.fileData[filename]) {
+      originalName = req.fileData[filename].originalName;
+      console.log(`使用修复后的文件名: "${originalName}"`);
+    }
+    
+    console.log('保存单个附件:', {
+      文件名: originalName,
+      保存路径: relativePath
+    });
     
     // 保存附件信息
     const [result] = await db.query(
@@ -374,7 +409,7 @@ exports.addAttachment = async (req, res) => {
        VALUES (?, ?, ?, ?, ?)`,
       [
         req.params.id,
-        req.file.originalname,
+        originalName,
         req.file.mimetype,
         relativePath,
         req.file.size
@@ -442,4 +477,4 @@ exports.deleteAttachment = async (req, res) => {
     console.error(err.message);
     res.status(500).send('服务器错误');
   }
-}; 
+};

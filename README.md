@@ -116,4 +116,43 @@ npm start
 
 ## 许可证
 
-本项目采用 MIT 许可证，详情见 [LICENSE](LICENSE) 文件。 
+本项目采用 MIT 许可证，详情见 [LICENSE](LICENSE) 文件。
+
+## Windows环境部署
+
+在Windows环境中构建和推送Docker镜像：
+
+1. 安装Docker Desktop并确保其正常运行
+
+2. 打开PowerShell并导航到项目目录
+
+3. 运行Windows构建脚本:
+   ```powershell
+   # 可能需要设置执行策略
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+   
+   # 运行构建脚本
+   .\build-push-win.ps1
+   ```
+
+4. 脚本会构建并推送以下镜像到Docker Hub:
+   - leileigwl/ycsolar-frontend:latest
+   - leileigwl/ycsolar-backend:latest
+   - leileigwl/ycsolar-db:latest
+
+## Linux服务器部署
+
+在Linux服务器上部署已推送的Docker镜像：
+
+1. 将`linux-deploy.sh`上传到Linux服务器
+
+2. 添加执行权限并运行:
+   ```bash
+   chmod +x linux-deploy.sh
+   ./linux-deploy.sh
+   ```
+
+3. 应用将在以下端口运行:
+   - 前端: 3000
+   - 后端: 5000
+   - 数据库: 3306 

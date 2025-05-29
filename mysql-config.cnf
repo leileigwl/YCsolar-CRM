@@ -1,0 +1,15 @@
+[mysqld]
+# 基本设置
+max_connections = 151
+max_allowed_packet = 64M
+thread_cache_size = 8
+
+# InnoDB设置
+innodb_buffer_pool_size = 256M
+innodb_log_file_size = 64M
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
+
+# 字符集设置
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci 

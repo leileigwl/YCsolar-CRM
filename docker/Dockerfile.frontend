@@ -2,6 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# 设置npm使用淘宝镜像
+RUN npm config set registry https://registry.npmmirror.com
+
 # 复制npmrc和package.json
 COPY myclient/.npmrc myclient/package*.json ./
 

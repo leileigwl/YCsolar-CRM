@@ -16,6 +16,6 @@ RUN echo "[mysqld]" >> /etc/mysql/conf.d/charset.cnf && \
     echo "character-set-server=utf8mb4" >> /etc/mysql/conf.d/charset.cnf && \
     echo "collation-server=utf8mb4_unicode_ci" >> /etc/mysql/conf.d/charset.cnf
 
-EXPOSE 3306
+EXPOSE 3306 
 
 CMD ["mysqld"] 

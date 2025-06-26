@@ -1,8 +1,11 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
   frontend:
     image: leileigwl/ycsolar-frontend:1.1.2
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
     container_name: ycsolar-frontend
     ports:
       - "3000:3000"
@@ -16,6 +19,9 @@ services:
 
   backend:
     image: leileigwl/ycsolar-backend:1.1.2
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
     container_name: ycsolar-backend
     ports:
       - "5000:5000"
@@ -36,6 +42,9 @@ services:
 
   db:
     image: leileigwl/ycsolar-db:1.1.2
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.db
     container_name: ycsolar-db
     ports:
       - "3306:3306"

@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   frontend:
-    build:
-      context: ./myclient
-      dockerfile: Dockerfile
+    image: leileigwl/ycsolar-frontend:1.1.2
     container_name: ycsolar-frontend
     ports:
       - "3000:3000"
@@ -14,19 +12,17 @@ services:
       - backend
     restart: unless-stopped
     environment:
-      - REACT_APP_API_URL=/api
+      - REACT_APP_API_URL=http://localhost:5000/api
 
   backend:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
+    image: leileigwl/ycsolar-backend:1.1.2
     container_name: ycsolar-backend
     ports:
       - "5000:5000"
     volumes:
       - uploads:/app/uploads
     environment:
-      - DB_HOST=db
+      - DB_HOST=host.docker.internal
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_NAME=crm_system
@@ -39,9 +35,7 @@ services:
     restart: unless-stopped
 
   db:
-    build:
-      context: .
-      dockerfile: Dockerfile.db
+    image: leileigwl/ycsolar-db:1.1.2
     container_name: ycsolar-db
     ports:
       - "3306:3306"
@@ -51,21 +45,6 @@ services:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_DATABASE=crm_system
       - MYSQL_PASSWORD=root
-    networks:
-      - ycsolar-network
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    container_name: ycsolar-nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-      - uploads:/var/www/uploads
-    depends_on:
-      - frontend
-      - backend
     networks:
       - ycsolar-network
     restart: unless-stopped

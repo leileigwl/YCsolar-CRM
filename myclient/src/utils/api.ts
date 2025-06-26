@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+// 获取API基础URL，优先使用环境变量，如果没有则使用相对路径
+const baseURL = process.env.REACT_APP_API_URL || '/api';
+
 // 创建 axios 实例
 const api = axios.create({
-  baseURL: '/api',  // 在Docker中通过Nginx代理到后端服务
+  baseURL,  // 使用环境变量或默认值
   headers: {
     'Content-Type': 'application/json',
   }

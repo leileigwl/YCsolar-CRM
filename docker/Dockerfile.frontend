@@ -1,0 +1,21 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 复制npmrc和package.json
+COPY myclient/.npmrc myclient/package*.json ./
+
+# 静默安装依赖
+RUN npm install axios@0.21.4 --no-save --quiet && \
+    npm install --force --no-fund --no-audit --loglevel=error && \
+    npm install -g serve
+
+COPY myclient/ ./
+
+# 静默构建
+RUN npm run build --silent
+
+EXPOSE 3000
+
+# 使用serve提供静态文件服务
+CMD ["serve", "-s", "build", "-l", "3000"] 

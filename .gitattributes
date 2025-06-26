@@ -1,0 +1,28 @@
+# 设置默认行为，防止在不同操作系统间切换时出现行尾符问题
+* text=auto
+
+# 明确声明应该被视为文本文件的文件类型
+*.js text
+*.ts text
+*.tsx text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+*.html text
+*.css text
+*.scss text
+*.sh text eol=lf
+*.conf text
+
+# 声明二进制文件，不应该被修改
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary 

@@ -79,4 +79,4 @@ yarn-error.log*
 .pnp
 .pnp.js
 .pnp.cjs
-.npmignore
+.npmignorenode_modules/
